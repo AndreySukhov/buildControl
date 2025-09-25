@@ -1,0 +1,56 @@
+# Compiled output directory
+/dist/
+/build/
+/out/
+/public/*.*
+
+# Dependencies
+/node_modules/
+/.pnpm-store/
+/pnpm-lock.yaml
+/yarn.lock
+/npm-debug.log*
+/yarn-error.log*
+/lerna-debug.log*
+
+# IDE-specific files
+.idea/
+*.iml
+*.ipr
+*.iws
+.DS_Store
+Thumbs.db
+.svn/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# Editor-specific temp/cache files
+*.log
+*.swp
+*.bak
+*~
+
+# Local environment variables
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Generated coverage reports
+/coverage/
+.nyc_output/
+
+# Cache for ESLint or other tools
+.eslintcache
+.prettiercache
+
+# Browsersync config file
+.browsersyncrc
+
+# Docker-related configuration
+.dockerignore
+Dockerfile
+docker-compose.yml
