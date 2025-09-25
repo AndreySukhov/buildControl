@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ConfigProvider, Layout } from 'antd';
 import ruRU from 'antd/locale/ru_RU';
 import { Login } from './pages/Login';
