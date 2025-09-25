@@ -13,13 +13,13 @@ import 'ol/ol.css';
 const { Title } = Typography;
 
 // GeoJSON типы
-type GeoJSONGeometry = {
-  type: 'Polygon' | 'MultiPolygon';
-  coordinates: number[][][] | number[][][][];
-};
+// type GeoJSONGeometry = {
+//   type: 'Polygon' | 'MultiPolygon';
+//   coordinates: number[][][] | number[][][][];
+// };
 
 interface ObjectMapProps {
-  geometry?: GeoJSONGeometry;
+  geometry?: any;
   center?: [number, number];
   zoom?: number;
 }
@@ -48,6 +48,8 @@ export const ObjectMap: React.FC<ObjectMapProps> = ({
       const feature = format.readFeature(geometry);
 
       // Стиль для полигона
+            //@ts-ignore
+
       feature.setStyle(
         new Style({
           stroke: new Stroke({
@@ -60,6 +62,7 @@ export const ObjectMap: React.FC<ObjectMapProps> = ({
         })
       );
 
+      //@ts-ignore
       vectorSource.addFeature(feature);
     }
 

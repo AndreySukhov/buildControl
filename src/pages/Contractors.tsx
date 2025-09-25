@@ -6,7 +6,6 @@ import {
   Tag, 
   Space, 
   Input, 
-  Button,
   Avatar,
   Rate
 } from 'antd';

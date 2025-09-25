@@ -88,37 +88,7 @@ export const ObjectDetail: React.FC = () => {
     { date: '2024-12-31', title: 'Сдача объекта', status: 'upcoming', description: 'Официальная сдача объекта в эксплуатацию' }
   ];
 
-  // Локации объекта (оставляем как есть — демо)
-  const objectLocations = [
-    {
-      id: 1,
-      name: 'Строительная площадка',
-      coordinates: [37.6173, 55.7558] as [number, number],
-      type: 'site' as const,
-      address: object.address // ✅ Используем адрес из объекта
-    },
-    {
-      id: 2,
-      name: 'Офис застройщика',
-      coordinates: [37.6254, 55.7552] as [number, number],
-      type: 'office' as const,
-      address: 'Москва, ЦАО, ул. Тверская, 15'
-    },
-    {
-      id: 3,
-      name: 'Склад материалов',
-      coordinates: [37.6085, 55.7522] as [number, number],
-      type: 'site' as const,
-      address: 'Москва, САО, ул. Арбат, 25'
-    },
-    {
-      id: 4,
-      name: 'Офис продаж',
-      coordinates: [37.6421, 55.7736] as [number, number],
-      type: 'client' as const,
-      address: 'Москва, САО, ул. Ленинский проспект, 100'
-    }
-  ];
+
 
   // ✅ Удаляем getStatusColor — нет статуса
   // ✅ Удаляем getPriorityColor — нет приоритета
