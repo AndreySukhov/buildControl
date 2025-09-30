@@ -62,8 +62,8 @@ export const Navigation: React.FC = () => {
       background: '#fff',
       boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
     }}>
-      <div style={{ display: 'flex', alignItems: 'center' }}>
-        <Title level={4} style={{ margin: 0, marginRight: '32px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', flexFlow: 'row wrap' }}>
+        <Title level={4} style={{ margin: 0, marginRight: '32px', whiteSpace: 'nowrap' }}>
           Build Journal
         </Title>
         <Menu
@@ -71,16 +71,12 @@ export const Navigation: React.FC = () => {
           selectedKeys={[location.pathname]}
           items={menuItems}
           onClick={handleMenuClick}
-          style={{ 
-            flex: 1, 
-            borderBottom: 'none',
-            background: 'transparent'
-          }}
+          className='main-menu'
+      
         />
       </div>
       
-      <div>
-        <Menu
+      <Menu
           mode="horizontal"
           items={[
             {
@@ -95,7 +91,6 @@ export const Navigation: React.FC = () => {
             background: 'transparent'
           }}
         />
-      </div>
     </Header>
   );
 };
