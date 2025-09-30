@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   Card, 
   Row, 
@@ -9,14 +9,14 @@ import {
   List, 
   Button, 
   Space,
-  Timeline,
-  Badge,
-  Tooltip
+  Tag,
+  Table,
+  Checkbox,
+  Image
 } from 'antd';
 import { 
   ArrowLeftOutlined, 
   UserOutlined, 
-  CalendarOutlined, 
   CheckCircleOutlined,
   SyncOutlined,
   ExclamationCircleOutlined,
@@ -28,13 +28,37 @@ import { OBJECTS_MOCK } from '../mocks/objects';
 
 const { Title, Text, Paragraph } = Typography;
 
-interface ObjectWorker {
-  id: number;
-  name: string;
-  role: string;
-  avatar?: string;
-  status: 'online' | 'offline' | 'away';
-}
+type ObjectStatus = 'new' | 'in_progress';
+
+const STATUS_LABELS: Record<ObjectStatus, string> = {
+  new: 'Новый',
+  in_progress: 'В работе',
+};
+
+const STATUS_COLORS: Record<ObjectStatus, string> = {
+  new: 'blue',
+  in_progress: 'green',
+};
+
+// Форматирование даты
+const formatDate = (dateString: string | null): string => {
+  if (!dateString) return '—';
+  return new Date(dateString).toLocaleDateString('ru-RU');
+};
+
+const formatCoordinates = (coords: [number, number]): string => {
+  const [lng, lat] = coords;
+  return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+};
+
+// Получение первой координаты внешнего кольца полигона
+const getFirstCoordinate = (geometry: any): string | null => {
+  if (!geometry || geometry.type !== 'Polygon' || !geometry.coordinates?.[0]?.[0]) {
+    return null;
+  }
+  const firstPoint = geometry.coordinates[0][0]; // [lng, lat]
+  return formatCoordinates(firstPoint as [number, number]);
+};
 
 interface ObjectTask {
   id: number;
@@ -44,33 +68,154 @@ interface ObjectTask {
   dueDate: string;
 }
 
-interface ObjectMilestone {
-  date: string;
-  title: string;
-  status: 'completed' | 'current' | 'upcoming';
-  description: string;
-}
+// interface RealEstateObject {
+//   id: number;
+//   name: string;
+//   description: string;
+//   address: string;
+//   photo: string;
+//   responsible: string;
+//   status: ObjectStatus;
+//   plannedStartDate: string;
+//   actualStartDate: string | null;
+//   coords?: [number, number]; // опционально для карты
+// }
 
 export const ObjectDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
-  // Имитация данных объекта недвижимости
   const object = OBJECTS_MOCK.find((obj) => obj.id === Number(id)) || OBJECTS_MOCK[0];
 
-  // 🎯 Генерируем случайный прогресс, если его нет в данных
-  const progress = Math.floor(Math.random() * 100);
+  const [resolvedRemarks, setResolvedRemarks] = useState<Set<number>>(new Set());
 
-  const workers: ObjectWorker[] = [
-    { id: 1, name: 'Александр Иванов', role: 'Главный инженер', status: 'online' },
-    { id: 2, name: 'Мария Петрова', role: 'Прораб', status: 'online' },
-    { id: 3, name: 'Дмитрий Сидоров', role: 'Архитектор', status: 'away' },
-    { id: 4, name: 'Елена Козлова', role: 'Сметчик', status: 'offline' },
-    { id: 5, name: 'Игорь Морозов', role: 'Технический надзор', status: 'online' },
-    { id: 6, name: 'Анна Волкова', role: 'Менеджер проекта', status: 'online' },
-    { id: 7, name: 'Сергей Новиков', role: 'Снабженец', status: 'offline' },
-    { id: 8, name: 'Ольга Лебедева', role: 'Бухгалтер', status: 'away' }
-  ];
+  const [resolvedViolations, setResolvedViolations] = useState<Set<number>>(new Set());
+
+
+    // Подготовка данных: добавляем флаг isResolved
+    const remarksWithStatus = useMemo(() => {
+      const source = object.remarks || [];
+      return source.map(remark => ({
+        ...remark,
+        isResolved: resolvedRemarks.has(remark.id),
+      }));
+    }, [object.remarks, resolvedRemarks]);
+
+    const violationsWithStatus = useMemo(() => {
+      const source = object.violations || [];
+      return source.map(violation => ({
+        ...violation,
+        isResolved: resolvedViolations.has(violation.id),
+      }));
+    }, [object.violations, resolvedViolations]);
+  
+    const handleToggleResolved = (id: number, checked: boolean) => {
+      setResolvedRemarks(prev => {
+        const newSet = new Set(prev);
+        if (checked) {
+          newSet.add(id);
+        } else {
+          newSet.delete(id);
+        }
+        return newSet;
+      });
+    };
+
+    const handleToggleViolationResolved = (id: number, checked: boolean) => {
+      setResolvedViolations(prev => {
+        const newSet = new Set(prev);
+        if (checked) {
+          newSet.add(id);
+        } else {
+          newSet.delete(id);
+        }
+        return newSet;
+      });
+    };
+
+    const violationsColumns = [
+      {
+        title: 'Нарушение',
+        dataIndex: 'title',
+        key: 'title',
+        render: (text: string, record: { isResolved: boolean }) => (
+          <Text delete={record.isResolved} type={record.isResolved ? 'secondary' : undefined}>
+            {text}
+          </Text>
+        ),
+      },
+      {
+        title: 'Дата',
+        dataIndex: 'date',
+        key: 'date',
+        render: (date: string) => formatDate(date),
+        width: 110,
+      },
+      {
+        title: 'Автор',
+        dataIndex: 'author',
+        key: 'author',
+        width: 140,
+      },
+      {
+        title: 'Статус',
+        key: 'status',
+        width: 100,
+        render: (_: any, record: { id: number; isResolved: boolean }) => (
+          <Checkbox
+            checked={record.isResolved}
+            onChange={e => handleToggleViolationResolved(record.id, e.target.checked)}
+          >
+            Устранено
+          </Checkbox>
+        ),
+      },
+    ];
+  
+    const remarksColumns = [
+      {
+        title: 'Замечание',
+        dataIndex: 'title',
+        key: 'title',
+        render: (text: string, record: { isResolved: boolean }) => (
+          <Text delete={record.isResolved} type={record.isResolved ? 'secondary' : undefined}>
+            {text}
+          </Text>
+        ),
+      },
+      {
+        title: 'Дата',
+        dataIndex: 'date',
+        key: 'date',
+        render: (date: string) => formatDate(date),
+        width: 110,
+      },
+      {
+        title: 'Автор',
+        dataIndex: 'author',
+        key: 'author',
+        width: 140,
+      },
+      {
+        title: 'Статус',
+        key: 'status',
+        width: 100,
+        render: (_: any, record: { id: number; isResolved: boolean }) => (
+          <Checkbox
+            checked={record.isResolved}
+            onChange={e => handleToggleResolved(record.id, e.target.checked)}
+          >
+            Исправлено
+          </Checkbox>
+        ),
+      },
+    ];
+
+
+  const firstCoord = getFirstCoordinate(object.coords);
+
+
+  const progress = Math.floor(Math.random() * 100);
 
   const recentTasks: ObjectTask[] = [
     { id: 1, title: 'Заливка фундамента', status: 'completed', assignee: 'Александр Иванов', dueDate: '2023-08-15' },
@@ -80,19 +225,31 @@ export const ObjectDetail: React.FC = () => {
     { id: 5, title: 'Внутренняя отделка', status: 'pending', assignee: 'Игорь Морозов', dueDate: '2024-08-05' }
   ];
 
-  const milestones: ObjectMilestone[] = [
-    { date: '2023-06-15', title: 'Начало строительства', status: 'completed', description: 'Получение разрешений и начало земляных работ' },
-    { date: '2023-08-15', title: 'Фундамент готов', status: 'completed', description: 'Заливка фундамента и гидроизоляция' },
-    { date: '2024-03-20', title: 'Каркас здания', status: 'current', description: 'Возведение несущих конструкций' },
-    { date: '2024-08-15', title: 'Коробка готова', status: 'upcoming', description: 'Завершение основных строительных работ' },
-    { date: '2024-12-31', title: 'Сдача объекта', status: 'upcoming', description: 'Официальная сдача объекта в эксплуатацию' }
-  ];
+    // Гарантируем, что stages — массив (если null → пустой массив)
+    const stagesData = object.stages || [];
 
-
-
-  // ✅ Удаляем getStatusColor — нет статуса
-  // ✅ Удаляем getPriorityColor — нет приоритета
-  // ✅ Удаляем formatPrice — нет бюджета
+    const columns = [
+      {
+        title: 'Этап работ',
+        dataIndex: 'stage',
+        key: 'stage',
+        render: (text: string) => <Text>{text}</Text>,
+      },
+      {
+        title: 'Начало',
+        dataIndex: 'startDate',
+        key: 'startDate',
+        render: (date: string) => formatDate(date),
+        width: 120,
+      },
+      {
+        title: 'Окончание',
+        dataIndex: 'endDate',
+        key: 'endDate',
+        render: (date: string) => formatDate(date),
+        width: 120,
+      },
+    ];
 
   const getTaskStatusIcon = (status: string) => {
     switch (status) {
@@ -104,19 +261,6 @@ export const ObjectDetail: React.FC = () => {
         return <ExclamationCircleOutlined style={{ color: '#faad14' }} />;
       default:
         return null;
-    }
-  };
-
-  const getMemberStatusBadge = (status: string) => {
-    switch (status) {
-      case 'online':
-        return <Badge status="success" />;
-      case 'away':
-        return <Badge status="warning" />;
-      case 'offline':
-        return <Badge status="default" />;
-      default:
-        return <Badge status="default" />;
     }
   };
 
@@ -134,13 +278,13 @@ export const ObjectDetail: React.FC = () => {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>
             <Title level={2} style={{ margin: 0 }}>{object.name}</Title>
-            {/* ✅ Убрали теги статуса и приоритета */}
-            {/* ✅ Можно добавить тип, если он появится */}
+            {/* ✅ Вывод статуса под заголовком */}
+            <div style={{ marginTop: '8px' }}>
+              <Tag color={STATUS_COLORS[object.status]}>
+                {STATUS_LABELS[object.status]}
+              </Tag>
+            </div>
           </div>
-          <Space>
-            <Button type="primary">Редактировать</Button>
-            <Button>Настройки</Button>
-          </Space>
         </div>
       </div>
 
@@ -151,7 +295,6 @@ export const ObjectDetail: React.FC = () => {
             <Paragraph>{object.description}</Paragraph>
           </Card>
 
-          {/* Прогресс — используем сгенерированный */}
           <Card title="Прогресс строительства" style={{ marginBottom: '16px' }}>
             <Progress 
               percent={progress} 
@@ -166,7 +309,6 @@ export const ObjectDetail: React.FC = () => {
             </Text>
           </Card>
 
-          {/* Задачи */}
           <Card title="Последние задачи" style={{ marginBottom: '16px' }}>
             <List
               dataSource={recentTasks}
@@ -188,81 +330,120 @@ export const ObjectDetail: React.FC = () => {
             />
           </Card>
 
-          {/* Карта объекта */}
           <ObjectMap 
             geometry={object.coords}
             zoom={12}
           />
+
+             {/* ✅ ТАБЛИЦА ЗАМЕЧАНИЙ */}
+             <Card title="Замечания" style={{ marginTop: '16px' }}>
+            {remarksWithStatus.length > 0 ? (
+              <Table
+                dataSource={remarksWithStatus}
+                columns={remarksColumns}
+                pagination={false}
+                rowKey="id"
+                size="small"
+              />
+            ) : (
+              <Text type="secondary">
+                Нет замечаний
+              </Text>
+            )}
+          </Card>
+
+          <Card title="Нарушения" style={{ marginTop: '16px' }}>
+            {violationsWithStatus.length > 0 ? (
+              <Table
+                dataSource={violationsWithStatus}
+                columns={violationsColumns}
+                pagination={false}
+                rowKey="id"
+                size="small"
+              />
+            ) : (
+              <Text type="secondary">Нет нарушений</Text>
+            )}
+          </Card>
         </Col>
 
         {/* Боковая панель */}
         <Col xs={24} lg={8}>
-          {/* ✅ Удаляем блок "Статистика объекта" — нет данных */}
-          {/* Можно оставить только адрес */}
+           {/* ✅ ФОТОГРАФИЯ ОБЪЕКТА */}
+           {object.photo && (
+            <Card style={{ marginBottom: '16px' }}>
+              <Image
+                src={object.photo}
+                alt={object.name}
+                style={{ width: '100%', borderRadius: 4 }}
+                preview={{ // включаем превью при клике
+                  mask: 'Увеличить',
+                }}
+              />
+            </Card>
+          )}
+          {/* Местоположение */}
           <Card title="Местоположение" style={{ marginBottom: '16px' }}>
             <Space direction="vertical" style={{ width: '100%' }}>
+              <Text type="secondary">
+                <EnvironmentOutlined /> {object.address}
+              </Text>
+            </Space>
+          </Card>
+
+          {/* ✅ НОВЫЙ БЛОК: Даты начала работ */}
+          <Card title="Даты начала работ" style={{ marginBottom: '16px' }}>
+            <Space direction="vertical" size="middle" style={{ width: '100%' }}>
               <div>
-                <Text type="secondary">
-                  <EnvironmentOutlined /> {object.address}
-                </Text>
+                <Text type="secondary">Плановая дата:</Text>
+                <br />
+                <Text strong>{formatDate(object.plannedStartDate)}</Text>
+              </div>
+              <div>
+                <Text type="secondary">Фактическая дата:</Text>
+                <br />
+                <Text strong>{formatDate(object.actualStartDate)}</Text>
               </div>
             </Space>
           </Card>
 
-          {/* Команда */}
-          <Card title="Команда объекта">
-            <List
-              size="small"
-              dataSource={workers}
-              renderItem={(worker) => (
-                <List.Item>
-                  <List.Item.Meta
-                    avatar={
-                      <Tooltip title={worker.status}>
-                        {getMemberStatusBadge(worker.status)}
-                        <Avatar size="small" icon={<UserOutlined />} style={{ marginLeft: '8px' }} />
-                      </Tooltip>
-                    }
-                    title={worker.name}
-                    description={worker.role}
-                  />
-                </List.Item>
-              )}
-            />
+          {firstCoord && (
+            <Card title="Координаты (центр/начало)" style={{ marginBottom: '16px' }}>
+              <Text copyable>
+                {firstCoord}
+              </Text>
+              <Text type="secondary" style={{ fontSize: '12px', display: 'block', marginTop: '4px' }}>
+                Широта, Долгота
+              </Text>
+            </Card>
+          )}
+
+        <Card title="Состав работ" style={{ marginTop: '16px' }}>
+            {stagesData.length > 0 ? (
+              <Table
+                dataSource={stagesData}
+                columns={columns}
+                pagination={false}
+                rowKey="id"
+                size="small"
+              />
+            ) : (
+              <Text type="secondary">Нет данных о составе работ</Text>
+            )}
+          </Card>
+
+          {/* Ответственный */}
+          <Card title="Ответственный" style={{ marginBottom: '16px' }}>
+            <Space direction="vertical" style={{ width: '100%' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Avatar icon={<UserOutlined />} />
+                <Text>{object.responsible}</Text>
+              </div>
+            </Space>
           </Card>
         </Col>
       </Row>
 
-      {/* Временная шкала */}
-      <Card title="Временная шкала строительства" style={{ marginTop: '16px' }}>
-        <Timeline>
-          {milestones.map((milestone, index) => (
-            <Timeline.Item
-              key={index}
-              color={
-                milestone.status === 'completed' ? 'green' :
-                milestone.status === 'current' ? 'blue' : 'gray'
-              }
-              dot={
-                milestone.status === 'completed' ? <CheckCircleOutlined /> :
-                milestone.status === 'current' ? <SyncOutlined spin /> : null
-              }
-            >
-              <div>
-                <Text strong>{milestone.title}</Text>
-                <br />
-                <Text type="secondary">{milestone.description}</Text>
-                <br />
-                <Text type="secondary" style={{ fontSize: '12px' }}>
-                  <CalendarOutlined /> {new Date(milestone.date).toLocaleDateString('ru-RU')}
-                </Text>
-              </div>
-            </Timeline.Item>
-          ))}
-        </Timeline>
-      </Card>
     </div>
   );
 };
-
-export default ObjectDetail;
